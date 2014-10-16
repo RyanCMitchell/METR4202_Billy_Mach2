@@ -1,0 +1,7 @@
+To operate matlab on the code for the delta-robot Billy:
+	1) Clone the repository to your computer
+	2) Add the RWTHMindstormsNXT folder and subfolders to your matlab path
+	3) Utilise the functions in the BillyCode subfolder
+
+
+Ryan joined - Test
