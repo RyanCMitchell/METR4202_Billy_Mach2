@@ -8,7 +8,7 @@ Install or update to the latest version of MatLab.
 
 
 Billy Control via Matlab
-=======================
+========================
 
 To operate matlab on the code for the delta-robot Billy:
 
@@ -79,4 +79,13 @@ Woohoo!!! How easy was that!! Now, really the only issue I’ve found, which was
 Now you can run the MatchAll.py function (make sure the Kinect is plugged in!).
 
 ** Remember to keep everything up to date with [brew update && brew outdated] **
+
+
+Dynamixel Turntable Control
+===========================
+•   Install the relevant driver from [http://www.ftdichip.com/Drivers/VCP.htm]
+•   Wire the system up [as described]
+•   Run the file to set the speed.
+
+
 
