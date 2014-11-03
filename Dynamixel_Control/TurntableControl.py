@@ -1,8 +1,7 @@
 from lib_robotis import *
 from usbscan import *
 from math import pi
-
-# rpm = angvel * (30/pi)
+from time import sleep
 
 def setSpeedRPM(rpm):
     "Sets the Dynamixel in wheel mode and the rotational speed to the desired RPM. The RPM is limited by the torque the Dynamixel provides i.e. if the torque is too small the table won't turn. Min RPM = 4.77 & Max RPM = 113.5."
@@ -14,6 +13,9 @@ def setSpeedRPM(rpm):
     # the number is the servo ID
     servo = Robotis_Servo(dyn, 1)
 
+    #Enable torque
+    servo.enable_torque()
+
     # enable wheel mode
     servo.enable_rotation()
 
@@ -23,6 +25,7 @@ def setSpeedRPM(rpm):
     # (smaller = slower)
     servo.set_angvel(rpm * (pi/30))
     return
+
 
 def setSpeedRad(rad):
     "Sets the Dynamixel in wheel mode and the rotational speed to the desired Rad/s. The Rad/s is limited by the torque the Dynamixel provides i.e. if the torque is too small the table won't turn. Min Rad/s = 0.5 & Max Rad/s = 11.89."
@@ -43,3 +46,19 @@ def setSpeedRad(rad):
     # (smaller = slower)
     servo.set_angvel(rad)
     return
+
+def initTurntable(rpm):
+    setSpeedRPM(rpm*1.5)
+    sleep(0.5)
+    setSpeedRPM(rpm)
+
+
+if __name__ == '__main__':
+    rpm = 5
+    while 1:
+        initTurntable(rpm)
+        sleep(20)
+        setSpeedRPM(0)
+        sleep(2)
+    
+    
