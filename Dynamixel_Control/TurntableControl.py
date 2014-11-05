@@ -54,11 +54,7 @@ def initTurntable(rpm):
 
 
 if __name__ == '__main__':
-    rpm = 5
-    while 1:
-        initTurntable(rpm)
-        sleep(20)
-        setSpeedRPM(0)
-        sleep(2)
+    setSpeedRPM(0)
+        
     
     
