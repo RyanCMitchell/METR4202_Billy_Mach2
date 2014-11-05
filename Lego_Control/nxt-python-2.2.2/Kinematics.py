@@ -16,15 +16,6 @@ f = 154.4 * 2 #280.51
 e = 46.3 * 2 #93.53
 t = (f - e) * degrees(tan(30))/2
 
-# Change to NUMPY Matrix
-# What does this section do???
-'''
-Rb = [degrees(cos(120)) -degrees(sin(120)); degrees(sin(120)) degrees(cos(120))]
-Ra = [degrees(cos(-120)) -degrees(sin(-120)); degrees(sin(-120)) degrees(cos(-120))]
-Pc = [f / (4 * degrees(cos(30)); 0]
-Pb = Rb * Pc
-Pa = Ra * Pc'''
-
 
 def forwardKin_v1(theta1, theta2, theta3):
     "Performs forward kinematics on the 3 angles supplied and returns 3 coordinates"
@@ -94,7 +85,7 @@ def forwardKin_v2(theta1, theta2, theta3):
 
     dnm = ((y2 - y1) * x3) - ((y3 - y1) * x2)
 
-    w1 = y1 * y1 + z1 * z1
+    w1 = y1**2 + z1 * z1
     w2 = x2 * x2 + y2 * y2 + z2 * z2
     w3 = x3 * x3 + y3 * y3 + z3 * z3
 
@@ -110,6 +101,9 @@ def forwardKin_v2(theta1, theta2, theta3):
     a = a1 * a1 + a2 * a2 + dnm * dnm
     b = 2 * (a1 * b1 + a2 * (b2 - y1 * dnm) - z1 * dnm * dnm)
     c = (b2 - y1 * dnm) * (b2 - y1 * dnm) + b1 * b1 + dnm * dnm * (z1 * z1 - re * re)
+
+    print a, b, c
+
 
     # Calculate the discriminant
     d = b * b - 4.0 * a * c

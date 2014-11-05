@@ -7,10 +7,10 @@
 #http://groups.google.com/group/nxt-python/browse_thread/thread/f6ef0865ae768ef
 
 import nxt, thread, time
-b = nxt.find_one_brick()
-mx = nxt.Motor(b, nxt.PORT_A)
-my = nxt.Motor(b, nxt.PORT_B)
-mz = nxt.Motor(b, nxt.PORT_C)
+LegoBrick = nxt.find_one_brick()
+mx = nxt.Motor(LegoBrick, nxt.PORT_A)
+my = nxt.Motor(LegoBrick, nxt.PORT_B)
+mz = nxt.Motor(LegoBrick, nxt.PORT_C)
 motors = [mx, my, mz]
 
 def turnmotor(m, power, degrees):
@@ -18,7 +18,7 @@ def turnmotor(m, power, degrees):
 
 #here are the instructions...
 #the first value is the time to start the instruction
-#the second is the axis (0 for x, 1 for y)
+#the second is the axis (0 for x, 1 for y, 2 for z)
 #the third is the power
 #the fourth is the degrees
 #it's probably not a good idea to run simultaneous turn
