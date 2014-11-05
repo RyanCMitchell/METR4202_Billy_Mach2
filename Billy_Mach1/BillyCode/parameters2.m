@@ -1,7 +1,7 @@
-rf = 184;%142.5;
-re = 232; %154.4
-f = 154.4*2; %280.51;
-e = 46.3*2; %93.53;
+rf = 191; %142.5 bicep length
+re = 213; %154.4 forarm length 
+f = 154.4*2; %280.51 top sidelength 
+e = 32.5*2; %93.53 base sidelength
 t = (f - e)*tand(30)/2;
 
 
