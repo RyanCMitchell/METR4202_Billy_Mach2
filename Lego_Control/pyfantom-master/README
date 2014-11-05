@@ -1,0 +1,33 @@
+Introduction
+============
+Pyfantom is a Python wrapper for the LEGO Mindstorms Fantom Driver.
+The Fantom Driver is available for Mac OSX and Windows, from:
+ 
+  http://mindstorms.lego.com/en-us/support/files/default.aspx
+
+Pyfantom exposes the routines for interfacing to the LEGO Mindstorms NXT
+using python applications.
+
+The Fantom API is documented in the Fantom SDK 1.0.x available from the same
+site as the LEGO Fantom Drivers.
+
+Requirements (Mac OSX)
+======================
+
+ * Python 2.6.x (Mac OSX default), or Python 2.7 Universal Build (MacPorts)
+ * LEGO Mindstorms Fantom Drivers
+
+Requirements (Windows)
+======================
+[TBD, not tested yet]
+ * Python >= 2.6
+ * LEGO Mindstorms Fantom Drivers
+
+Installation
+============
+
+If you're installing using the source package, first extract the source package, then:
+
+# python setup.py install
+
+inside the package directory. This should be run as root (or use sudo)
