@@ -7,20 +7,25 @@
 #http://groups.google.com/group/nxt-python/browse_thread/thread/f6ef0865ae768ef
 from Kinematics import *
 import numpy as np
-import time
+import nxt, thread, time
+motorDesiredArray = [0,0,0,80]
 
-def runNxt(instructions):
-    import nxt, thread, time
+def initNXT():
     LegoBrick = nxt.find_one_brick()
     mx = nxt.Motor(LegoBrick, nxt.PORT_A)
     my = nxt.Motor(LegoBrick, nxt.PORT_B)
     mz = nxt.Motor(LegoBrick, nxt.PORT_C)
-    motors = [mx, my, mz]
+    return mx,my,mz
 
+def runNxt(a,b,c,power,mx,my,mz):
+    #create a list of instructions
+    instructions = instructionsmake(a,b,c,power)
+    
     #get tach readings before running
     x0 = mx.get_tacho()
     y0 = my.get_tacho()
     z0 = mz.get_tacho()
+    motors = [mx,my,mz]
     
     def turnmotor(m, power, degrees):
             m.turn(power, degrees)
@@ -59,24 +64,11 @@ def runNxt(instructions):
                 b1 = B[-1]
                 c1 = C[-1]
                 break
-    #print a1,b1,c1
-    MotorPosition = np.load('MotorPosition.npy')
-    print MotorPosition
-    
-    #saves the new position as a numpy array   
-    MotorPosition = np.array([initAng-a1,initAng-b1,initAng-c1])
-    print MotorPosition
-    np.save('MotorPosition',MotorPosition)
-    
+    print a1,b1,c1    
 
-def readTacho():
-    import nxt
-    LegoBrick = nxt.find_one_brick()
-    mx = nxt.Motor(LegoBrick, nxt.PORT_A)
-    my = nxt.Motor(LegoBrick, nxt.PORT_B)
-    mz = nxt.Motor(LegoBrick, nxt.PORT_C)
+def readTacho(mx,my,mz):
     return [mx.get_tacho().tacho_count,my.get_tacho().tacho_count,mz.get_tacho().tacho_count]
-
+    """
 def resetTacho():
     import nxt
     #retrives current position
@@ -93,6 +85,7 @@ def resetTacho():
     #saves the position as a numpy array   
     MotorPosition = np.array([motorA0,motorB0,motorC0])
     np.save('MotorPosition',MotorPosition)
+    """
     
 def instructionsmake(a,b,c,power):
     dir1 = 1.; dir2 = 1.; dir3 = 1.;
@@ -103,35 +96,12 @@ def instructionsmake(a,b,c,power):
     if c < 0.0:
         dir3 = -1.
     instructions = (
-                    [0, 0, dir1*power, abs(a*5)],
-                    [0, 1, dir2*power, abs(b*5)],
-                    [0, 2, dir3*power, abs(c*5)],
+                    [0, 0, dir1*power, abs(a)],
+                    [0, 1, dir2*power, abs(b)],
+                    [0, 2, dir3*power, abs(c)],
             )
     return instructions
 
-def moveRel(x0,y0,z0,power):
-    MotorPosition = np.load('MotorPosition.npy')
-    [motorA0,motorB0,motorC0] = MotorPosition
-    x,y,z = correctPos(x0, y0, z0)
-    a0,b0,c0 = delta_calcInverse(x, y, z)
-    a,b,c = correctMotorAngle(a0,b0,c0,motorA0,motorB0,motorC0)
-
-    #Convert positions and powers into format from runNxt
-    dir1 = 1.; dir2 = 1.; dir3 = 1.;
-    if a < 0.0:
-        dir1 = -1.
-    if b < 0.0:
-        dir2 = -1.
-    if c < 0.0:
-        dir3 = -1.
-    instructions = (
-                    [0, 0, dir1*power, abs(a*5)],
-                    [0, 1, dir2*power, abs(b*5)],
-                    [0, 2, dir3*power, abs(c*5)],
-                    )
-
-    #run motors
-    runNxt(instructions)
 
 def returnToZero():
     [a,b,c] = readTacho()
@@ -141,28 +111,47 @@ def returnToZero():
         runNxt(instructions)
         time.sleep(1)
         [a,b,c] = readTacho()
+
+def mainMotorLoop():
+    global motorDesiredArray
+    mx,my,mz = initNXT()
+    [Ad,Bd,Cd,power] = motorDesiredArray
+    [Aa,Ba,Ca] = readTacho(mx,my,mz)
+    Ea = (Ad-Aa)*5; Eb = (Bd-Ba)*5; Ec = (Cd-Ca)*5
+    print "Desired", Ad,Bd,Cd
+    print "Actual ", Aa,Ba,Ca
+    print "Error  ", Ea,Eb,Ec
+    
+    
+def setDesired(x0,y0,z0,power):
+    x,y,z = correctPos(x0, y0, z0)
+    a0,b0,c0 = delta_calcInverse(x, y, z)
+    a,b,c = correctMotorAngle(a0,b0,c0)
+    print a,b,c
+    global motorDesiredArray
+    motorDesiredArray = [a,b,c,power]
+
+    
+
     
 
 if __name__=='__main__':
     #dynamixel centre 8.5cm radially from billy centre
     #motor A upper support 32deg to horizontal
     #motor B upper support
+    motorDesiredArray = [0,0,0,80]
     """
-    a = 0.
+    mx,my,mz = initNXT()
+    a = 2.
     b = 0.
-    c = 2.
-    power = 40
-    
-    instructions = instructionsmake(a,b,c,power)
-    runNxt(instructions)
+    c = 0.
+    power = 50
+    runNxt(a,b,c,power,mx,my,mz)
     """
-    """
-    readTacho()
-    resetTacho()
-    print np.load('MotorPosition.npy')
-    """
+    #resetTacho()
     #print readTacho()
-    returnToZero()
+    #returnToZero()
+    
     """
     x = 0.
     y = 0.
@@ -170,7 +159,9 @@ if __name__=='__main__':
     power = 50
     moveRel(x,y,z,power)
     """
-    
+    setDesired(0,0,100,60)
+    print motorDesiredArray
+    mainMotorLoop()
     
     
     

@@ -35,7 +35,7 @@ def delta_calcAngleYZ(x0, y0, z0):
     d = -(a+b*y1)*(a+b*y1)+rf*(b*b*rf+rf)
 
     if (d < 0.0):
-        return 'na'#// non-existing point
+        return None#// non-existing point
 
     yj = (y1 - a*b - sqrt(d))/(b*b + 1)# // choosing outer point
     zj = a + b*yj
@@ -97,11 +97,11 @@ def correctFrameAngle(theta1, theta2, theta3):
     theta3 = theta3-frameAngle
     return theta1,theta2,theta3
 
-def correctMotorAngle(a0,b0,c0,motorA0,motorB0,motorC0):
+def correctMotorAngle(a0,b0,c0):
     #Subtracts desried motor position from current
-    a = a0 - motorA0
-    b = b0 - motorB0
-    c = c0 - motorC0
+    a = a0 - initAng
+    b = b0 - initAng
+    c = c0 - initAng
     return a,b,c
 
 def correctPos(x0, y0, z0):
@@ -119,5 +119,6 @@ if __name__=='__main__':
     #a,b,c = delta_calcInverse(0,0,1)
     #print a,b,c
     #print forwardKin2( a, b, c )
-    correctAngle(90, 90, 90)
+    FindExtends(32,32)
+    #ErrorSurf(n=10)
 
