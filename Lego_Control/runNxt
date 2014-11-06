@@ -52,8 +52,6 @@ def runNxt(a,b,c,power,mx,my,mz):
 
     
     #query until access is given then read tachos
-    time.sleep(1)
-    """
     A = [0]; B = [0]; C = [0];
     while 1:
         x1 = mx.get_tacho()
@@ -66,8 +64,7 @@ def runNxt(a,b,c,power,mx,my,mz):
                 b1 = B[-1]
                 c1 = C[-1]
                 break
-    print a1,b1,c1
-    """
+    print a1,b1,c1    
 
 def readTacho(mx,my,mz):
     return [mx.get_tacho().tacho_count,my.get_tacho().tacho_count,mz.get_tacho().tacho_count]
@@ -118,23 +115,12 @@ def returnToZero():
 def mainMotorLoop():
     global motorDesiredArray
     mx,my,mz = initNXT()
-    samePosCount = 0
-    Ea_old = 0; Eb_old = 0; Ec_old = 0
-    while(True):
-        [Ad,Bd,Cd,power] = motorDesiredArray
-        [Aa,Ba,Ca] = readTacho(mx,my,mz)
-        Ea = (Ad-(Aa/5))*5; Eb = (Bd-(Ba/5))*5; Ec = (Cd-(Ca/5))*5
-        if(((abs(Ea_old)-abs(Ea))<10)and((abs(Ea_old)-abs(Ea))<10)and((abs(Ea_old)-abs(Ea))<10)):
-            samePosCount+=1
-        else:
-            samePosCount = 0
-        Ea_old = Ea; Eb_old = Eb; Ec_old = Ec
-        
-        print "Desired", Ad,Bd,Cd
-        print "Actual ", Aa,Ba,Ca
-        print "Error  ", Ea,Eb,Ec
-        if(samePosCount < 5):
-            runNxt(Ea,Eb,Ec,power,mx,my,mz)
+    [Ad,Bd,Cd,power] = motorDesiredArray
+    [Aa,Ba,Ca] = readTacho(mx,my,mz)
+    Ea = (Ad-Aa)*5; Eb = (Bd-Ba)*5; Ec = (Cd-Ca)*5
+    print "Desired", Ad,Bd,Cd
+    print "Actual ", Aa,Ba,Ca
+    print "Error  ", Ea,Eb,Ec
     
     
 def setDesired(x0,y0,z0,power):
@@ -173,28 +159,11 @@ if __name__=='__main__':
     power = 50
     moveRel(x,y,z,power)
     """
-    
-
-    # make the motor thread
-    thread.start_new_thread(mainMotorLoop, ())
+    setDesired(0,0,100,60)
     print motorDesiredArray
-
-    # now, down here we should be able to change setDesired and see
-    # the change in the motors (via the child thread loop)
-    time.sleep(2)
-    setDesired(0,0,100,60)
-    time.sleep(2)
-    setDesired(0,0,0,60)
-    time.sleep(2)
-    setDesired(130,0,100,60)
-    time.sleep(2)
-    setDesired(130,0,0,60)
-    time.sleep(2)
-    setDesired(130,0,100,60)
-    time.sleep(2)
-    setDesired(0,0,100,60)
-    time.sleep(2)
-    setDesired(0,0,0,60)
+    mainMotorLoop()
+    
+    
     
     
     
