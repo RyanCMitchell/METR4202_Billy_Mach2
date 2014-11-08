@@ -45,7 +45,7 @@ def setSpeedRad(rad):
     # 12.5 - 23.7 --> CW (tested)
     # (smaller = slower)
     servo.set_angvel(rad)
-    return servo
+    return
 
 def initTurntable(rpm):
     setSpeedRPM(rpm*1.5)
@@ -54,7 +54,7 @@ def initTurntable(rpm):
 
 
 if __name__ == '__main__':
-    servo = setSpeedRad(12.5)
+    setSpeedRad(12.5)
         
     
     

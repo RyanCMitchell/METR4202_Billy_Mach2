@@ -50,9 +50,8 @@ def runNxt(a,b,c,power,mx,my,mz):
     for i in instructions:
         runinstruction(i[1:])
 
-    
+    time.sleep(0.5)
     #query until access is given then read tachos
-    time.sleep(1)
     """
     A = [0]; B = [0]; C = [0];
     while 1:
@@ -124,6 +123,9 @@ def mainMotorLoop():
         [Ad,Bd,Cd,power] = motorDesiredArray
         [Aa,Ba,Ca] = readTacho(mx,my,mz)
         Ea = (Ad-(Aa/5))*5; Eb = (Bd-(Ba/5))*5; Ec = (Cd-(Ca/5))*5
+        #print "[Ad,Bd,Cd]: ",[Ad,Bd,Cd]
+        #print "[Aa,Ba,Ca]: ",[Aa,Ba,Ca]
+        #print "[Ea,Eb,Ec]: ",[Ea,Eb,Ec]
         if(((abs(Ea_old)-abs(Ea))<10)and((abs(Ea_old)-abs(Ea))<10)and((abs(Ea_old)-abs(Ea))<10)):
             samePosCount+=1
         else:
@@ -136,14 +138,16 @@ def mainMotorLoop():
         if(samePosCount < 5):
             runNxt(Ea,Eb,Ec,power,mx,my,mz)
     
-    
 def setDesired(x0,y0,z0,power):
+    print " "
     x,y,z = correctPos(x0, y0, z0)
+    #print "x,y,z: ",x,y,z
     a0,b0,c0 = delta_calcInverse(x, y, z)
+    #print "a0,b0,c0: ",a0,b0,c0
     a,b,c = correctMotorAngle(a0,b0,c0)
-    print a,b,c
+    #print "a,b,c: ",a,b,c
     global motorDesiredArray
-    motorDesiredArray = [a,b,c,power]
+    motorDesiredArray = [-a,-b,-c,power]
 
     
 
@@ -155,7 +159,7 @@ if __name__=='__main__':
     #motor B upper support
     """
     mx,my,mz = initNXT()
-    a = 2.
+    a = 5.
     b = 0.
     c = 0.
     power = 50
@@ -176,24 +180,70 @@ if __name__=='__main__':
 
     # make the motor thread
     thread.start_new_thread(mainMotorLoop, ())
-    print motorDesiredArray
+    #print motorDesiredArray
 
     # now, down here we should be able to change setDesired and see
     # the change in the motors (via the child thread loop)
-    time.sleep(2)
-    setDesired(0,0,100,60)
-    time.sleep(2)
     setDesired(0,0,0,60)
-    time.sleep(2)
-    setDesired(130,0,100,60)
-    time.sleep(2)
-    setDesired(130,0,0,60)
-    time.sleep(2)
-    setDesired(130,0,100,60)
-    time.sleep(2)
-    setDesired(0,0,100,60)
-    time.sleep(2)
-    setDesired(0,0,0,60)
-    
+    time.sleep(3.5)
+    #run in a circle
+    t0 = time.time()
+    while True:
+        t = time.time()-t0
+        rpm = 2
+        r = 50
+        theta = rpm*(pi/30.)*t
+        x_circle = r*cos(theta)
+        y_circle = r*sin(theta)
+        print "x: ",x_circle," y: ",y_circle
+        setDesired(x_circle+85,y_circle-40,0,100)
+        time.sleep(0.1)
+    """
+    #step out in x (shit)
+    x_lin = 0
+    while x_lin<200:
+        t = time.time()-t0
+        x_dot = 8
+        x_lin = x_dot*t
+        print " "
+        print "x: ",x_lin
+        print " "
+        setDesired(x_lin,0,0,50)
+        time.sleep(0.1)
+    """
+    """
+   
+    """
+    """
+    time.sleep(3.5)
+    setDesired(150,0,0,80)
+    time.sleep(0.5)
+    setDesired(0,130,0,80)
+    time.sleep(0.5)
+    setDesired(0,130,0,80)
+    time.sleep(0.5)
+    setDesired(0,-130,0,80)
+    time.sleep(0.5)
+    setDesired(0,0,0,80)
+    time.sleep(0.5)
+    setDesired(0,0,100,80)
+    time.sleep(0.5)
+    setDesired(-130,0,100,80)
+    time.sleep(0.5)
+    setDesired(-130,0,0,80)
+    time.sleep(0.5)
+    setDesired(0,0,100,80)
+    time.sleep(0.5)
+    setDesired(0,0,0,80)
+    time.sleep(0.5)
+    setDesired(100,0,-0,80)
+    time.sleep(0.5)
+    setDesired(100,0,50,80)
+    time.sleep(0.5)
+    setDesired(0,0,50,80)
+    time.sleep(0.5)
+    setDesired(0,0,0,80)
+    """
+
     
     
