@@ -153,7 +153,6 @@ if __name__=='__main__':
     #dynamixel centre 8.5cm radially from billy centre
     #motor A upper support 32deg to horizontal
     #motor B upper support
-    motorDesiredArray = [0,0,0,80]
     """
     mx,my,mz = initNXT()
     a = 2.
