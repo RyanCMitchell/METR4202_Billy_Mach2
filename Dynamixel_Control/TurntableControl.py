@@ -54,7 +54,7 @@ def initTurntable(rpm):
 
 
 if __name__ == '__main__':
-    setSpeedRPM(0)
+    setSpeedRad(12.5)
         
     
     

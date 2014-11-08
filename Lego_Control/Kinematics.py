@@ -2,7 +2,7 @@
 from math import sqrt, tan, atan, degrees, pi, cos, sin, radians
 
 #define the constants
-rf = 191 #142.5 bicep length
+rf = 143 #142.5 bicep length
 re = 213 #154.4 forarm length
 f = 154.4*2 #280.51 top sidelength
 e = 32.5*2 #93.53 base sidelength
@@ -117,8 +117,8 @@ if __name__=='__main__':
 
     
     #a,b,c = delta_calcInverse(0,0,1)
-    #print a,b,c
+    print a,b,c
     #print forwardKin2( a, b, c )
-    FindExtends(32,32)
+    #FindExtends(32,32)
     #ErrorSurf(n=10)
 
