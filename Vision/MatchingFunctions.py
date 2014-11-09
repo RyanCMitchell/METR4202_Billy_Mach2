@@ -1,9 +1,3 @@
-import cv2
-import itertools
-from os.path import isfile, join
-from os import listdir
-
-
 def findKeyPoints(img, template, maxdist=200):
     import cv2
     import numpy as np
@@ -55,10 +49,18 @@ def findKeyPoints(img, template, maxdist=200):
 
     return skp_final, tkp_final
 
-
-def findKeyPointsDist(tkp, td, skp, sd, maxdist=200):
+def findKeyPointsDist(img, template, skp, sd, maxdist=200):
+    import time
+    import cv2
+    import numpy as np
+    import itertools
+    import sys
+    
     detector = cv2.FeatureDetector_create("FAST")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
+
+    tkp = detector.detect(template)
+    tkp, td = descriptor.compute(template, tkp)
 
     flann_params = dict(algorithm=1, trees=4)
     
@@ -124,10 +126,10 @@ def drawImageMappedPoints(img, skptotal, num=-1):
     cv2.destroyAllWindows()
 
 def saveImageMappedPoints(img, skptotal, ImageNo, num=-1):
-    #import cv2
-    #import numpy as np
-    #import itertools
-    #import sys
+    import cv2
+    import numpy as np
+    import itertools
+    import sys
 
     maxlen = len(skptotal)
     if num < 0 or num > maxlen:
@@ -135,7 +137,7 @@ def saveImageMappedPoints(img, skptotal, ImageNo, num=-1):
     for i in range(num):
         pt_b = (int(skptotal[i].pt[0]), int(skptotal[i].pt[1]))
         cv2.circle(img, pt_b, 3, (255, 0, 0))
-    cv2.imwrite('Vision/ProcessedImages/Processed'+str(ImageNo)+'.jpg', img)
+    cv2.imwrite('ProcessedImages/Processed'+str(ImageNo)+'.jpg', img)
 
 
 def match(img, temp, dist = 200, num = -1):
@@ -153,8 +155,83 @@ def match(img, temp, dist = 200, num = -1):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+"""
+def MatchAll(ImageNo, save, maxdist=200):
+    from os.path import isfile, join
+    from os import listdir
+    import cv2
+    import numpy as np
+    import itertools
+    import sys
+    #Clear all cv windows
+    cv2.destroyAllWindows()
 
-def MatchAllCapture(save, tkpTdList, maxdist, img, depth):
+    #Prepare a list of different training images
+    pathlarge = "TrainingImages/LargeCup/"
+    pathmedium = "TrainingImages/MediumCup/"
+    pathsmall = "TrainingImages/SmallCup/"
+    pathtest = "TestImages"
+
+    largecups = [ f for f in listdir(pathlarge) if isfile(join(pathlarge,f)) and f[0]<>"."]
+    mediumcups = [ f for f in listdir(pathmedium) if isfile(join(pathmedium,f)) and f[0]<>"."]
+    smallcups = [ f for f in listdir(pathsmall) if isfile(join(pathsmall,f)) and f[0]<>"."]
+    testimages = [ f for f in listdir(pathtest) if isfile(join(pathtest,f)) and f[0]<>"."]
+
+    img = cv2.imread(str(pathtest+"/"+testimages[ImageNo]))
+
+    KeyPointsTotalList = []
+    DistsTotalList = []
+
+    for i in largecups+mediumcups+smallcups:
+        if i in largecups:
+            temp = cv2.imread(str(pathlarge+"/"+i))
+        elif i in mediumcups:
+            temp = cv2.imread(str(pathmedium+"/"+i))
+        elif i in smallcups:
+            temp = cv2.imread(str(pathsmall+"/"+i))
+        #print i
+
+        detector = cv2.FeatureDetector_create("FAST")
+        descriptor = cv2.DescriptorExtractor_create("SIFT")
+        skp = detector.detect(img)
+        skp, sd = descriptor.compute(img, skp)
+        
+        KeyPointsOut = findKeyPointsDist(img,temp,skp,sd,maxdist)
+        KeyPointsTotalList += KeyPointsOut[0]
+        DistsTotalList += KeyPointsOut[1]
+        
+    indices = range(len(DistsTotalList))
+    indices.sort(key=lambda i: DistsTotalList[i])
+    DistsTotalList = [DistsTotalList[i] for i in indices]
+    KeyPointsTotalList = [KeyPointsTotalList[i] for i in indices]
+    img1 = img
+    if save == 1:
+        saveImageMappedPoints(img1, KeyPointsTotalList, ImageNo)
+    return KeyPointsTotalList, DistsTotalList, img
+"""
+def MatchAllCapture(save, maxdist, img, depth):
+    from os.path import isfile, join
+    import freenect
+    from os import listdir
+    import cv2
+    import numpy as np
+    import itertools
+    import sys
+    import time
+    #Clear all cv windows
+    #cv2.destroyAllWindows()
+
+    #Prepare a list of different training images
+    pathlarge = "TrainingImages/AxonCups/LargeCup/"
+    pathmedium = "TrainingImages/AxonCups/MediumCup/"
+    pathsmall = "TrainingImages/AxonCups/SmallCup/"
+    pathtest = "TestImages"
+
+    largecups = [ f for f in listdir(pathlarge) if isfile(join(pathlarge,f)) and f[0]<>"."]
+    mediumcups = [ f for f in listdir(pathmedium) if isfile(join(pathmedium,f)) and f[0]<>"."]
+    smallcups = [ f for f in listdir(pathsmall) if isfile(join(pathsmall,f)) and f[0]<>"."]
+    testimages = [ f for f in listdir(pathtest) if isfile(join(pathtest,f)) and f[0]<>"."]
+
     detector = cv2.FeatureDetector_create("FAST")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
     skp = detector.detect(img)
@@ -163,10 +240,15 @@ def MatchAllCapture(save, tkpTdList, maxdist, img, depth):
     KeyPointsTotalList = []
     DistsTotalList = []
 
-    for i in xrange(len(tkpTdList)):
-        tkp = tkpTdList[i][0]
-        td = tkpTdList[i][1]
-        KeyPointsOut = findKeyPointsDist(tkp,td,skp,sd,maxdist)
+    for i in largecups+mediumcups+smallcups:
+        if i in largecups:
+            temp = cv2.imread(str(pathlarge+"/"+i))
+        elif i in mediumcups:
+            temp = cv2.imread(str(pathmedium+"/"+i))
+        elif i in smallcups:
+            temp = cv2.imread(str(pathsmall+"/"+i))
+        #print i
+        KeyPointsOut = findKeyPointsDist(img,temp,skp,sd,maxdist)
         KeyPointsTotalList += KeyPointsOut[0]
         DistsTotalList += KeyPointsOut[1]
 
@@ -180,36 +262,45 @@ def MatchAllCapture(save, tkpTdList, maxdist, img, depth):
         
     return KeyPointsTotalList, DistsTotalList, img, depth
 
-def SIFTLoadTemplates():
-    #Prepare a list of different training images
-    pathlarge = "Vision/TrainingImages/AxonCups/LargeCup/"
-    pathmedium = "Vision/TrainingImages/AxonCups/MediumCup/"
-    #pathsmall = "TrainingImages/AxonCups/SmallCup/"
+def MatchAllCaptureGlass(save, maxdist=200):
+    from os.path import isfile, join
+    import freenect
+    from os import listdir
+    import cv2
+    import numpy as np
+    import itertools
+    import sys
 
-    largecups = [ f for f in listdir(pathlarge) if isfile(join(pathlarge,f)) and f[0]<>"."]
-    mediumcups = [ f for f in listdir(pathmedium) if isfile(join(pathmedium,f)) and f[0]<>"."]
-    #smallcups = [ f for f in listdir(pathsmall) if isfile(join(pathsmall,f)) and f[0]<>"."]
+    #Prepare a list of different training images
+    pathGlass = "TrainingImages/Glass/"
+    GlassCups = [ f for f in listdir(pathGlass) if isfile(join(pathGlass,f)) and f[0]<>"."]
+    
+    img, timestamp = freenect.sync_get_video()
+    depth, timestamp = freenect.sync_get_depth(format=freenect.DEPTH_REGISTERED)
 
     detector = cv2.FeatureDetector_create("FAST")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
-
-    tkpTdList = []
+    skp = detector.detect(img)
+    skp, sd = descriptor.compute(img, skp)
     
-    for i in largecups+mediumcups:#+smallcups:
-        if i in largecups:
-            temp = cv2.imread(str(pathlarge+"/"+i))
-        elif i in mediumcups:
-            temp = cv2.imread(str(pathmedium+"/"+i))
-        """
-        elif i in smallcups:
-            temp = cv2.imread(str(pathsmall+"/"+i))
-        """
-        tkp = detector.detect(temp)
-        tkp, td = descriptor.compute(temp, tkp)
-        tkpTdList.append((tkp, td))
-        
-    return tkpTdList
+    KeyPointsTotalList = []
+    DistsTotalList = []
 
+    for i in GlassCups:
+        temp = cv2.imread(str(pathGlass+"/"+i))
+        KeyPointsOut = findKeyPointsDist(img,temp,skp,sd,maxdist)
+        KeyPointsTotalList += KeyPointsOut[0]
+        DistsTotalList += KeyPointsOut[1]
+
+    indices = range(len(DistsTotalList))
+    indices.sort(key=lambda i: DistsTotalList[i])
+    DistsTotalList = [DistsTotalList[i] for i in indices]
+    KeyPointsTotalList = [KeyPointsTotalList[i] for i in indices]
+    img1 = img
+    if save == 1:
+        saveImageMappedPoints(img, KeyPointsTotalList, 1)
+        
+    return KeyPointsTotalList, DistsTotalList, img, depth
 
 def Cluster(Z, groups = 3):
     import cv2
@@ -285,6 +376,6 @@ def fit_ellipses(img):
 
     
 if __name__== '__main__':
-    MatchAllCaptureSave()
+    MatchAllCapture(0)
     
 
