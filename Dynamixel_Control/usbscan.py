@@ -7,6 +7,7 @@ def scan_for_usb():
     out, err = p.communicate()
     
     devfiles = out.split()
+    print devfiles
 
     for df in devfiles:
         if df.find("cu.usbserial") != -1:

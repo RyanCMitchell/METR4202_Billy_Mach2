@@ -9,13 +9,28 @@ from math import sqrt
 from MatchingFunctions import findKeyPoints, drawKeyPoints, match, findKeyPointsDist, drawImageMappedPoints, saveImageMappedPoints, MatchAllCapture, Cluster, fit_ellipses
 from CoordTransform import convertToWorldCoords, transformCoords, FrameFind
 from MatchGlass import GlassFind
-#from GlassFind import GlassFind
 
 def MatchAllCluster(save, maxdist=200, filtparam=2.0, SplitTend = 0.8, glassDetect = 0, drawnoncups = 0):
-    "This function attempts to find and classify cups and glasses in world coordinates"
+    "This function attempts to find and classify cups on the turn table"
+
+    #Acquire image
+    img0, timestamp = freenect.sync_get_video()
+    depth0, timestamp = freenect.sync_get_depth(format=freenect.DEPTH_REGISTERED)
+
+    #Retieve the coordinate system
+    Corners = np.load('CalibrationImages/Caliboutput/corners.npy')
+    PixCorners = np.load('CalibrationImages/Caliboutput/PixCorners.npy')
+
+    #Create ROI
+    y0 = (PixCorners[1][0]+PixCorners[2][0])/2.
+    x0 = (PixCorners[0][1]+PixCorners[2][2])/2.
+    h = (PixCorners[2][0]-PixCorners[1][0])/2.
+    w = (PixCorners[2][2]-PixCorners[0][1])/2.
+    depth = depth0[y0-1.8*h:y0+1.7*h, x0-w*0.8:x0+w*0.5]
+    img = img0[y0-1.8*h:y0+1.7*h, x0-w*0.8:x0+w*0.5]
     
     #Find all SIFT points relating to the cups
-    PointsList, DisList, img, depth = MatchAllCapture(0,maxdist)
+    PointsList, DisList, img, depth = MatchAllCapture(0,maxdist, img, depth)
 
     #Exclude SIFT points with no depth value
     PointsClusterList = []
@@ -212,17 +227,6 @@ def MatchAllCluster(save, maxdist=200, filtparam=2.0, SplitTend = 0.8, glassDete
         except NameError:
             continue
 
-        #Draw the top of the ROI in a seperate image
-        """
-        cv2.circle(cup11, tuple(Maxpos), 3, colourList[j+1])
-        cv2.circle(cup11, tuple(Minpos), 3, colourList[j+1])
-        cv2.line(cup11, tuple(Maxpos), tuple(Minpos), colourList[j+1])
-        cv2.circle(cup11, (midLeft,cupDepth1.shape[0]), 3, colourList[j+1])
-        cv2.circle(cup11, (midRight,cupDepth1.shape[0]), 3, colourList[j+1])
-        cv2.line(cup11, (midLeft,cupDepth1.shape[0]), (midLeft,cupDepth1.shape[0]), colourList[j+1])
-        #cv2.imshow('MaxMin',cup11)
-        """
-
         #Find the key points on the cup in world coordinates
         globMin0 = int(round(centx-w+Minpos[0],0))
         globMin1 = int(round(centy-h+Minpos[1],0))
@@ -398,9 +402,10 @@ if __name__== '__main__':
     
     
     cv2.destroyAllWindows()
+
     #FrameFind()
     while 1<2:
-        MatchAllCluster(0,maxdist=80, filtparam=2.0, SplitTend = 1, glassDetect = 0, drawnoncups = 1)
+        MatchAllCluster(0,maxdist=80, filtparam=2.0, SplitTend = 0.7, glassDetect = 0, drawnoncups = 1)
         cv2.waitKey(10)
 
     

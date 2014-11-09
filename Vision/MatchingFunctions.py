@@ -209,7 +209,7 @@ def MatchAll(ImageNo, save, maxdist=200):
         saveImageMappedPoints(img1, KeyPointsTotalList, ImageNo)
     return KeyPointsTotalList, DistsTotalList, img
 """
-def MatchAllCapture(save, maxdist=200):
+def MatchAllCapture(save, maxdist, img, depth):
     from os.path import isfile, join
     import freenect
     from os import listdir
@@ -231,11 +231,6 @@ def MatchAllCapture(save, maxdist=200):
     mediumcups = [ f for f in listdir(pathmedium) if isfile(join(pathmedium,f)) and f[0]<>"."]
     smallcups = [ f for f in listdir(pathsmall) if isfile(join(pathsmall,f)) and f[0]<>"."]
     testimages = [ f for f in listdir(pathtest) if isfile(join(pathtest,f)) and f[0]<>"."]
-
-    #img = cv2.imread(str(pathtest+"/"+testimages[ImageNo]))
-
-    img, timestamp = freenect.sync_get_video()
-    depth, timestamp = freenect.sync_get_depth(format=freenect.DEPTH_REGISTERED)
 
     detector = cv2.FeatureDetector_create("FAST")
     descriptor = cv2.DescriptorExtractor_create("SIFT")
