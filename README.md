@@ -89,3 +89,6 @@ Dynamixel Turntable Control
 
 
 
+Replace the motor.py file in /usr/local/lib/python2.7/site-packages/nxt with the motor.py file found in the top level git.
+
+
