@@ -2,22 +2,25 @@
 from os.path import isfile, join
 from os import listdir
 import numpy as np
-import freenect, itertools, sys, time, cv2
-import time
+import freenect, cv2
+import time, sys, itertools
 from matplotlib import pyplot as plt
 from math import sin,cos,sqrt, pi, atan2
-from MatchingFunctions import findKeyPoints, drawKeyPoints, match, findKeyPointsDist, drawImageMappedPoints, saveImageMappedPoints, MatchAllCapture, Cluster, fit_ellipses
+from MatchingFunctions import *
 from CoordTransform import convertToWorldCoords, transformCoords, FrameFind
-from MatchGlass import GlassFind
+#from MatchGlass import GlassFind
 
 cupInitPos = []
 cupInitTime = []
 t0 = time.time()
+cupAveInitPos = []
+cupAveTime = 0.
 
 x_turnTableAxis = -181
 y_turnTableAxis = 213
+queueLength = 50
 
-def MatchAllCluster(interationCount,save, maxdist=200, filtparam=2.0, SplitTend = 0.8, ROI = 0, glassDetect = 0, drawnoncups = 0):
+def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0, SplitTend = 0.8, ROI = 0, drawnoncups = 0):
     "This function attempts to find and classify cups on the turn table"
 
     #Acquire image
@@ -41,9 +44,9 @@ def MatchAllCluster(interationCount,save, maxdist=200, filtparam=2.0, SplitTend 
     
     #Find all SIFT points relating to the cups
     if ROI==1:
-        PointsList, DisList, img, depth = MatchAllCapture(0,maxdist, img, depth)
+        PointsList, DisList, img, depth = MatchAllCapture(0,tkpTdList,maxdist, img, depth)
     else:        
-        PointsList, DisList, img, depth = MatchAllCapture(0,maxdist, img0, depth0)
+        PointsList, DisList, img, depth = MatchAllCapture(0,tkpTdList,maxdist, img0, depth0)
         
     
 
@@ -264,14 +267,14 @@ def MatchAllCluster(interationCount,save, maxdist=200, filtparam=2.0, SplitTend 
         cv2.imwrite('ProcessedImages/ProcessedCluster'+str(ImageNo)+'.jpg', img)
 
     # Print or save final image
-    if len(FinalFinalCentersWC)<>0 or len(FinalGlassCentersWC)<>0:
+    if len(FinalFinalCentersWC)<>0:# or len(FinalGlassCentersWC)<>0:
         print FinalFinalCentersWC
         cv2.imshow("Cups Stream", img)
 
-    
+        
     # If kinect has run for a few iteration and there are less
     #than 5 cups accounted for start global decisions
-    if interationCount>4 and len(cupInitPos)<=150:
+    if interationCount>4:
 
         #print "FinalFinalCentersWC",FinalFinalCentersWC
         # remove all cups which couldn't be classified
@@ -290,11 +293,13 @@ def MatchAllCluster(interationCount,save, maxdist=200, filtparam=2.0, SplitTend 
 
         #print "cupContenderList1",cupContenderList1
         # Check if the model already has a cup there
-        if len(cupContenderList1) > 0:
+        for i in xrange(len(cupContenderList1)):
             global cupInitPos,cupInitTime
-            cupInitPos.append(FinalFinalCentersWC[0])
+            cupInitPos.append(cupContenderList1[i])
             cupInitTime.append(tCapture-t0)
-    
+            if len(cupInitPos) > queueLength:
+                del cupInitPos[0]
+                del cupInitTime[0]
 
 def getCupPosition(ind,rpm):
     #Extract inital global variables
@@ -310,46 +315,161 @@ def getCupPosition(ind,rpm):
     y_circle = r*cos(theta) + y_turnTableAxis
     return x_circle,y_circle,cupType
 
-def visualiseCup(rpm):
-    import cv2
-    import numpy as np
+def getCupPositionAve(ind,rpm,tAhead):
+    #Extract inital global variables
+    [x0,y0,z0,cupType] = cupAveInitPos[ind]
+    x0 = x0 - x_turnTableAxis
+    y0 = y0 - y_turnTableAxis
+    theta0 = atan2(x0,y0)
+    r = sqrt(x0**2+y0**2)
+    t = time.time()-t0-cupAveTime
+    theta = rpm*(pi/30.)*(t+tAhead)+theta0
+    x_circle = r*sin(theta) + x_turnTableAxis
+    y_circle = r*cos(theta) + y_turnTableAxis
+    return x_circle,y_circle,cupType
+
+def visualiseCupAve(rpm):
     d_table = 255
     r_cupLarge = 45
     r_cupMedium = 39
 
     #initalise image
-    img = np.zeros((300,300),dtype=np.uint8)
+    img = np.zeros((300,300,3),dtype=np.uint8)
     si = img.shape
     cent = (si[0]/2,si[1]/2)
     cv2.circle(img, cent, d_table/2, [255,255,255])
 
     #raw cups
-    for i in xrange(len(cupInitTime)):
-        x,y,cupType = getCupPosition(i,rpm)
+    for i in xrange(len(cupAveInitPos)):
+        x,y,cupType = getCupPositionAve(i,rpm,0)
+        
+
         x = x - x_turnTableAxis
         y = y - y_turnTableAxis
         
         if cupType == "Medium":
             r_cCup = r_cupMedium
+            color = [255,0,0]
         else:
             r_cCup = r_cupLarge
+            color = [0,255,0]
         c_cent = (cent[0]+int(round(y,0)),cent[1]+int(round(x,0)))
-        cv2.circle(img, c_cent, r_cCup, [255,0,0])
-        cv2.circle(img, c_cent, 1, [255,0,0])
-        cv2.circle(img, (20,10), 1, [255,0,0])
+        cv2.circle(img, c_cent, 10, color, -1)
+        cv2.circle(img, c_cent, r_cCup, color,thickness=5)
+        cv2.circle(img, c_cent, 2, (0,0,0), -1)
+
+    cv2.imshow('Average Cups',img)
+
+def clusterCup(rpm,SplitTend,tlag=0.1):
+    d_table = 255
+    r_cupLarge = 45
+    r_cupMedium = 39
+
+    #initalise image
+    img = np.zeros((300,300,3),dtype=np.uint8)
+    si = img.shape
+    cent = (si[0]/2,si[1]/2)
+    cv2.circle(img, cent, d_table/2, [255,255,255])
+
+    currentCupsPos = []
+    currentCupsType = {}
+    #raw cups
+    for i in xrange(len(cupInitTime)):
+        x,y,cupType = getCupPosition(i,rpm)
+
+        currentCupsPos.append(np.array([x,y]))
+        currentCupsType[str(round(x,2))+str(round(y,2))]=cupType
+        
+        x = x - x_turnTableAxis
+        y = y - y_turnTableAxis
+        
+        if cupType == "Medium":
+            r_cCup = r_cupMedium
+            color = [255,0,0]
+        else:
+            r_cCup = r_cupLarge
+            color = [0,255,0]
+        c_cent = (cent[0]+int(round(y,0)),cent[1]+int(round(x,0)))
+        cv2.circle(img, c_cent, r_cCup, color)
+        cv2.circle(img, c_cent, 1, color)
+
+
+    if len(currentCupsPos)>10:
+        # convert to np.float32
+        Z = currentCupsPos[:]
+        Z = np.float32(Z)
+        
+        # Determine how many cups there are by trying clustering arrangements
+        segregated, centers, distFromCenter, distFromCenterAve1 = Cluster(Z, 1)
+        segregated, centers, distFromCenter, distFromCenterAve2 = Cluster(Z, 2)
+        segregated, centers, distFromCenter, distFromCenterAve3 = Cluster(Z, 3)
+        segregated, centers, distFromCenter, distFromCenterAve4 = Cluster(Z, 4)
+        segregated, centers, distFromCenter, distFromCenterAve5 = Cluster(Z, 5)
+
+        # Rank clustering arrangments and decide on the number of cups
+        distFromCenterAveList = [(sum(distFromCenterAve1)/len(distFromCenterAve1))*1.0,
+        (sum(distFromCenterAve2)/len(distFromCenterAve2))*(1.0+1.0*SplitTend),
+        (sum(distFromCenterAve3)/len(distFromCenterAve3))*(1.0+2.0*SplitTend),
+        (sum(distFromCenterAve4)/len(distFromCenterAve4))*(1.0+3.0*SplitTend),
+        (sum(distFromCenterAve5)/len(distFromCenterAve5))*(1.0+4.0*SplitTend)]
+
+        groups = distFromCenterAveList.index(min(distFromCenterAveList))+1
+        segregated, centers, distFromCenter, distFromCenterAve = Cluster(Z, groups)
+
+        global cupAveTime
+        cupAveTime = time.time()-t0-tlag
+
+        finalCupsTemp = []
+        
+        for i in xrange(groups):
+            segregatedCupTypes = []
+            [x,y] = centers[i]
+            xWorld = x
+            yWorld = y
+            x = x - x_turnTableAxis
+            y = y - y_turnTableAxis
+
+            default = None
+            for j in segregated[i]:
+                segregatedCupTypes.append(currentCupsType.get(str(round(j[0],2))+str(round(j[1],2)), default))
+            LargeCount = segregatedCupTypes.count('Large')
+            MediumCount = segregatedCupTypes.count('Medium')
+            if LargeCount>MediumCount:
+                ModalCupType = 'Large'
+                centColor = [0,255,0]
+                r_cCup = r_cupLarge
+            else:
+                ModalCupType = 'Medium'
+                centColor = [255,0,0]
+                r_cCup = r_cupMedium
+
+            c_cent = (cent[0]+int(round(y,0)),cent[1]+int(round(x,0)))
+            cv2.circle(img, c_cent, 10, centColor, -1)
+            cv2.circle(img, c_cent, r_cCup, centColor,thickness=5)
+            cv2.circle(img, c_cent, 2, (0,0,0), -1)
+            finalCupsTemp.append([xWorld,yWorld,0,ModalCupType])
+        global cupAveInitPos
+        cupAveInitPos = finalCupsTemp
+    
+            
+            
     cv2.imshow('Cups',img)
+    
 
 if __name__== '__main__':
+    rpm = 60/31.92
     
     
     cv2.destroyAllWindows()
-
+    
     #FrameFind()
+    tkpTdList = SIFTLoadTemplates()
     interationCount = 0
-    while 1<2:
-        MatchAllCluster(interationCount,0,maxdist=60, filtparam=1.0, SplitTend = 0.7, ROI = 1, drawnoncups = 1)
-        visualiseCup(60/30.88)
-        cv2.waitKey(10)
+    while True:
+        MatchAllCluster(interationCount,0,tkpTdList, maxdist=80, filtparam=1.0, SplitTend = 0.5, ROI = 1, drawnoncups = 1)
+        clusterCup(rpm,1.2,tlag=0.1)
+        visualiseCupAve(rpm)
+        cv2.waitKey(1)
         interationCount += 1
         
 
