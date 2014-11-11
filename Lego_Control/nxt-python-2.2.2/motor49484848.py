@@ -135,16 +135,11 @@ def get_tacho_and_state(values):
 class BaseMotor(object):
     """Base class for motors"""
     debug = 0
-    finished = 1
-
-    def isFinished():
-        return self.finished
-    
     def _debug_out(self, message):
         if self.debug:
             print message
 
-    def turn2(self, power, tacho_units, brake=True, timeout=1, emulate=True):
+    def turn(self, power, tacho_units, brake=True, timeout=1, emulate=True):
         """Use this to turn a motor. The motor will not stop until it turns the
         desired distance. Accuracy is much better over a USB connection than
         with bluetooth...
@@ -161,7 +156,7 @@ class BaseMotor(object):
                  Warning: motors remember their positions and not using emulate
                  may lead to strange behavior, especially with synced motors
         """
-        self.finished = 0
+  
         tacho_limit = tacho_units
  
         if tacho_limit < 0:
@@ -221,7 +216,6 @@ class BaseMotor(object):
         finally:
             if brake:
                 self.brake()
-                self.finished = 1
             else:
                 self.idle()
 
