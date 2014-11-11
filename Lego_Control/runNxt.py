@@ -7,8 +7,21 @@
 #http://groups.google.com/group/nxt-python/browse_thread/thread/f6ef0865ae768ef
 from Kinematics import *
 import numpy as np
-import nxt, thread, time
+import nxt, thread, time, serial
+import winsound
 motorDesiredArray = [0,0,0,80]
+
+def switch_vacuum(ser,state):
+    
+    if state == 1:
+        ser.write('o')
+    elif state == 0:
+        ser.write('x')
+    else:
+        return
+
+def beep(sound):
+    winsound.PlaySound('%s.wav' % sound, winsound.SND_FILENAME)
 
 def initNXT():
     LegoBrick = nxt.find_one_brick()
@@ -142,27 +155,37 @@ def mainMotorLoop(mx,my,mz):
     samePosCount = 0
     tol = 5
     Ea_old = 0; Eb_old = 0; Ec_old = 0
+    Ad_old = 0; Bd_old = 0; Cd_old = 0;
     while(True):
         flag=1
+        multiplier = 1
         [Ad,Bd,Cd,power] = motorDesiredArray
         [Aa,Ba,Ca] = readTacho(mx,my,mz)
         Ea = (Ad-(Aa/5))*5; Eb = (Bd-(Ba/5))*5; Ec = (Cd-(Ca/5))*5
         #print "[Ad,Bd,Cd]: ",[Ad,Bd,Cd]
         #print "[Aa,Ba,Ca]: ",[Aa,Ba,Ca]
         #print "[Ea,Eb,Ec]: ",[Ea,Eb,Ec]
-        if((abs(Ea_old-Ea)<10)and(abs(Ea_old-Ea)<10)and(abs(Ea_old-Ea)<10)):
+        if((abs(Ea_old-Ea)<10)and(abs(Eb_old-Eb)<10)and(abs(Ec_old-Ec)<10)):
             samePosCount+=1
         else:
             samePosCount = 0
         Ea_old = Ea; Eb_old = Eb; Ec_old = Ec
-        if (abs(Ea)<5)and(abs(Eb)<5)and(abs(Ec)<5):
+        if(Ad == Ad_old and Bd == Bd_old and Cd == Cd_old):
+            multiplier = 0.8
+        Ad_old = Ad; Bd_old = Bd; Cd_old = Cd;
+        if (abs(Ea)<6)and(abs(Eb)<6)and(abs(Ec)<6):
             flag = 0
         #print "Desired", Ad*5,Bd*5,Cd*5
         #print "Actual ", Aa,Ba,Ca
         #print "Error  ", Ea,Eb,Ec
         if((samePosCount < 5)and flag):
-            runNxt(Ea,Eb,Ec,power,mx,my,mz)
+            runNxt(multiplier*Ea,multiplier*Eb,multiplier*Ec,power,mx,my,mz)
+            if(multiplier== 0.8):
+                print "Multiplier, running ",Ea,Eb,Ec
+            else:
+                print "No multiplier, running ",Ea,Eb,Ec
 
+        
 def setDesired(x0,y0,z0,power=False):
     print " "
     x,y,z = correctPos(x0, y0, z0)
@@ -174,10 +197,36 @@ def setDesired(x0,y0,z0,power=False):
     global motorDesiredArray
     motorDesiredArray = [-a,-b,-c,power]
 
-def transformWorldToBilly(x,y,z):
-    A = 1
-    xnew = 1
+def transformWorldToBilly(xworld,yworld,zworld):
+    xworld = xworld + 181 + 55
+    yworld = yworld - 213 + 65
+    xbilly = xworld*cosd(-30) - yworld*sind(-30)
+    ybilly = xworld*sind(-30) + yworld*cosd(-30)
+    return [xbilly,-ybilly,zworld]
 
+def rotateBillyFrame(x,y,z):
+    return
+
+def takeOrders(menu):
+    numDrinks = menu[0]
+    drinks = menu[1]
+    print "Number of drinks: " + str(numDrinks) + "\n"
+    orderedDrinks = []
+    for e in drinks:
+        if e[5] == 0:
+            orderedDrinks.append(e)
+        else:
+            orderedDrinks.insert(0,e)
+    for i,e in enumerate(orderedDrinks):
+        print "Order " + str(i + 1)
+        print "Cupsize: " + ("Medium" if e[0] == 1 else "Large")
+        print "Number of coffee sachets: " + str(e[1])
+        print "Number of teabags: " + str(e[2])
+        print "Number of sugars: " + str(e[3])
+        print "Espresso: " + ("Yes" if e[0] == 1 else "No")
+        print "Urgent: " + ("Yes" if e[0] == 1 else "No")
+        print ""
+    return orderedDrinks
 
 def instructionsmake(degx,degy,degz,power):
     if(power==False):
@@ -241,11 +290,12 @@ def kinect2Billy(x,y,z):
 
     return newx,newy,newz
 
-if __name__=='__main__':
+if __name__=='_main__':
     #dynamixel centre 8.5cm radially from billy centre
     #motor A upper support 32deg to horizontal
     #motor B upper support
     mx,my,mz = initNXT()
+    ser = serial.Serial('/dev/tty.usbmodem1411', 115200)
     """
     mx,my,mz = initNXT()
     a = 5.
@@ -304,10 +354,24 @@ if __name__=='__main__':
         time.sleep(0.1)
     """
     #(x,y,z) =  kinect2Billy(100,0,0)
+    
     time.sleep(5)
-    setDesired(100,0,30)
+    [x,y,z] = transformWorldToBilly(-236,148,140)
+    setDesired(x,y,z)
+    time.sleep(2)
+    [x,y,z] = transformWorldToBilly(-181,213,140)
+    setDesired(x,y,z)
+    time.sleep(4)
+    switch_vacuum(ser,1)
+    time.sleep(1)
+    [x,y,z] = transformWorldToBilly(-181,213,-35)
+    setDesired(x,y,z)
+    time.sleep(1)
+    [x,y,z] = transformWorldToBilly(-181,213,130)
+    setDesired(x,y,z)
     time.sleep(5)
     setDesired(0,0,0)
+    switch_vacuum(ser,0)
     
 
     
