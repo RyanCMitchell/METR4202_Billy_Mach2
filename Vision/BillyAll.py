@@ -5,7 +5,7 @@ import numpy as np
 import freenect, cv2
 import time, sys, itertools
 from matplotlib import pyplot as plt
-from math import sin,cos,sqrt, pi, atan2
+from math import sin,cos,sqrt, pi, atan2, radians
 from MatchingFunctions import *
 from CoordTransform import convertToWorldCoords, transformCoords, FrameFind
 #from MatchGlass import GlassFind
@@ -268,7 +268,7 @@ def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0,
 
     # Print or save final image
     if len(FinalFinalCentersWC)<>0:# or len(FinalGlassCentersWC)<>0:
-        print FinalFinalCentersWC
+        #print FinalFinalCentersWC
         cv2.imshow("Cups Stream", img)
 
         
@@ -328,7 +328,7 @@ def getCupPositionAve(ind,rpm,tAhead):
     y_circle = r*cos(theta) + y_turnTableAxis
     return x_circle,y_circle,cupType
 
-def visualiseCupAve(rpm):
+def visualiseCupAve(rpm,tAhead=5):
     d_table = 255
     r_cupLarge = 45
     r_cupMedium = 39
@@ -358,9 +358,29 @@ def visualiseCupAve(rpm):
         cv2.circle(img, c_cent, r_cCup, color,thickness=5)
         cv2.circle(img, c_cent, 2, (0,0,0), -1)
 
+    """
+    #ahead cups
+    for i in xrange(len(cupAveInitPos)):
+        x,y,cupType = getCupPositionAve(i,rpm,5)
+        
+
+        x = x - x_turnTableAxis
+        y = y - y_turnTableAxis
+        
+        if cupType == "Medium":
+            r_cCup = r_cupMedium
+            color = [255,0,20]
+        else:
+            r_cCup = r_cupLarge
+            color = [0,255,20]
+        c_cent = (cent[0]+int(round(y,0)),cent[1]+int(round(x,0)))
+        cv2.circle(img, c_cent, 10, color, -1)
+        cv2.circle(img, c_cent, 2, (0,0,0), -1)
+    """
+
     cv2.imshow('Average Cups',img)
 
-def clusterCup(rpm,SplitTend,tlag=0.1):
+def clusterCup(rpm,SplitTend=0.5,tlag=0.1):
     d_table = 255
     r_cupLarge = 45
     r_cupMedium = 39
@@ -416,6 +436,29 @@ def clusterCup(rpm,SplitTend,tlag=0.1):
         groups = distFromCenterAveList.index(min(distFromCenterAveList))+1
         segregated, centers, distFromCenter, distFromCenterAve = Cluster(Z, groups)
 
+        """
+        # Combine overlapping cups, too hard
+        closeCenters = []
+        for i in xrange(groups):
+            for j in xrange(i,groups):
+                if i<>j and sqrt((centers[i][0]-centers[j][0])**2+(centers[i][1]-centers[j][1])**2)<(2*r_cupMedium):
+                    closeCenters.append([i,j])
+
+        print "closeCenters",closeCenters
+
+        segregatedNewList = []
+        centersNewList = []
+        popList = []
+        for i in closeCenters:
+            segregatedNewList.append(segregated[i[0]]+segregated[i[1]])
+            centersNewList.append([(centers[i[0]][0]+centers[i[1]][0])/2.,
+                                   (centers[i[0]][1]+centers[i[1]][1])/2.])
+            popList.append(i[0])
+            popList.append(i[1])
+        popList=(list(set(popList))).sort(reverse=True)
+        print "popList",popList
+        """ 
+                
         global cupAveTime
         cupAveTime = time.time()-t0-tlag
 
@@ -454,7 +497,29 @@ def clusterCup(rpm,SplitTend,tlag=0.1):
             
             
     cv2.imshow('Cups',img)
-    
+
+def pickNearestCup(reqCupType,rpm,delay=5):
+    futureCups = []
+    for i in xrange(len(cupAveInitPos)):
+        x,y,cupType = getCupPositionAve(i,rpm,delay)
+        if cupType == reqCupType:
+            x0 = x - x_turnTableAxis
+            y0 = y - y_turnTableAxis
+            theta0 = atan2(x0,y0)
+            futureCups.append([theta0,x,y])
+
+    contenderCups = []
+    for i in futureCups:
+        if radians(165)<i[0]<radians(180) or radians(-180)<i[0]<radians(-75):
+            contenderCups.append(i)
+
+    contenderCups.sort(key=lambda x: (x[0]+radians(360) % radians(360)))
+
+    if len(contenderCups)>0:
+        return contenderCups[0]
+    else:
+        return None
+
 
 if __name__== '__main__':
     rpm = 60/31.92
@@ -467,10 +532,11 @@ if __name__== '__main__':
     interationCount = 0
     while True:
         MatchAllCluster(interationCount,0,tkpTdList, maxdist=80, filtparam=1.0, SplitTend = 0.5, ROI = 1, drawnoncups = 1)
-        clusterCup(rpm,1.2,tlag=0.1)
-        visualiseCupAve(rpm)
+        clusterCup(rpm,SplitTend=1.2,tlag=0)
+        visualiseCupAve(rpm,tAhead=5)
         cv2.waitKey(1)
         interationCount += 1
+        pickNearestCup("Medium",rpm,delay=5)
         
 
     
