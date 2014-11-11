@@ -17,7 +17,7 @@ def switch_vacuum(ser,state):
 if __name__ == '__main__':
     import serial, time
     t0 = time.time()
-    ser = serial.Serial('/dev/tty.usbmodem14531', 115200)
+    ser = serial.Serial('/dev/tty.usbmodem1411', 115200)
     t1 = time.time()
     time.sleep(0.10)
     print "time taken was: ",t1-t0
