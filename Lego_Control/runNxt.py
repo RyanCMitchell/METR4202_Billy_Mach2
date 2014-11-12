@@ -180,7 +180,6 @@ def mainMotorLoop(mx,my,mz):
 
         
 def setDesired(x0,y0,z0,power=False):
-    print " "
     x,y,z = correctPos(x0, y0, z0)
     #print "x,y,z: ",x,y,z
     a0,b0,c0 = delta_calcInverse(x, y, z)
@@ -199,27 +198,6 @@ def transformWorldToBilly(xworld,yworld,zworld):
 
 def rotateBillyFrame(x,y,z):
     return
-
-def takeOrders(menu):
-    numDrinks = menu[0]
-    drinks = menu[1]
-    print "Number of drinks: " + str(numDrinks) + "\n"
-    orderedDrinks = []
-    for e in drinks:
-        if e[5] == 0:
-            orderedDrinks.append(e)
-        else:
-            orderedDrinks.insert(0,e)
-    for i,e in enumerate(orderedDrinks):
-        print "Order " + str(i + 1)
-        print "Cupsize: " + ("Medium" if e[0] == 1 else "Large")
-        print "Number of coffee sachets: " + str(e[1])
-        print "Number of teabags: " + str(e[2])
-        print "Number of sugars: " + str(e[3])
-        print "Espresso: " + ("Yes" if e[0] == 1 else "No")
-        print "Urgent: " + ("Yes" if e[0] == 1 else "No")
-        print ""
-    return orderedDrinks
 
 def instructionsmake(degx,degy,degz,power):
     if(power==False):
