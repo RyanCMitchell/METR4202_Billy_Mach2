@@ -292,7 +292,10 @@ def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0,
         # Remove all cups which aren't on the table
         cupContenderList1 = []
         for i in cupContenderList:
-            if 50<i[2]<110:
+            xtable = i[0] - x_turnTableAxis
+            ytable = i[1] - y_turnTableAxis
+            rthing = sqrt(xtable**2 + ytable**2)
+            if (50<i[2]<110)and(rthing < 115.):
                 cupContenderList1.append(i)
 
         #print "cupContenderList1",cupContenderList1
@@ -362,6 +365,20 @@ def visualiseCupAve(rpm,tAhead=5):
         cv2.circle(img, c_cent, 10, color, -1)
         cv2.circle(img, c_cent, r_cCup, color,thickness=5)
         cv2.circle(img, c_cent, 2, (0,0,0), -1)
+
+    for i in xrange(len(cupCompletedPos)):
+        temp = cupCompletedPos[i]
+        [x0,y0,rpm,delayTime,cupAveTimeTemp] = temp
+        x0,y0 = getCupPositionAtTime(x0,y0,rpm,delayTime,cupAveTimeTemp)
+        x = x0 - x_turnTableAxis
+        y = y0 - y_turnTableAxis
+        color = [0,0,255]
+        c_cent = (cent[0]+int(round(y,0)),cent[1]+int(round(x,0)))
+        cv2.circle(img, c_cent, 10, color, -1)
+        cv2.circle(img, c_cent, r_cupLarge, color,thickness=5)
+        cv2.circle(img, c_cent, 2, (0,0,0), -1)
+        
+        
 
     """
     #ahead cups
@@ -556,7 +573,16 @@ def pickNearestCup(reqCupType,rpm,delay=5):
     futureCups = []
     for i in xrange(len(cupAveInitPos)):
         x,y,cupType,x0,y0,cupAveTimeTemp = getCupPositionAve(i,rpm,delay)
-        if cupType == reqCupType:
+        completeDistList = []
+        for i in xrange(len(cupCompletedPos)):
+            temp = cupCompletedPos[i]
+            [x0,y0,rpm,delayTime,cupAveTimeTemp1] = temp
+            xComp,yComp = getCupPositionAtTime(x0,y0,rpm,0,cupAveTimeTemp1)
+            completeDistList.append(sqrt((xComp-x)**2+(yComp-y)**2))
+        minCompleteLit = 100
+        if len(completeDistList)>0:
+            minCompleteLit = min(completeDistList)
+        if cupType == reqCupType and minCompleteLit>50:
             x0 = x - x_turnTableAxis
             y0 = y - y_turnTableAxis
             theta0 = atan2(x0,y0)
@@ -598,6 +624,7 @@ def loop(rpm):
 
 
 def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
+    cupCompletedPos.append([x0,y0,rpm,-1*sleeptime-0.8,cupAveTimeTemp])
     sleeptime2 = 3
     coaster = transformWorldToBilly(-330,90,20)
     midpoint = transformWorldToBilly(-180,50,110)
@@ -627,23 +654,47 @@ def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
         ynewtable = ynew - y_turnTableAxis
         theta0 = atan2(xnewtable,ynewtable)
         cv2.waitKey(20)
-    print xnew,ynew
     [xnew,ynew,znew] = transformWorldToBilly(xnew,ynew,150)
-    print xnew,ynew
     setDesired(xnew,ynew,150)
-    cv2.waitKey(int((sleeptime2-0.8)*1000))
+    cv2.waitKey(int((sleeptime2- 1.2 - 0.8)*1000))
     switch_vacuum(ser,0)
-    setDesired(xnew,ynew,30)
+    cv2.waitKey(1200)
+    setDesired(xnew,ynew,50)
+    cv2.waitKey(500)
+    setDesired(xnew,ynew,20)
     cv2.waitKey(2*1000)
     setDesired(xnew,ynew,150)
-    cv2.waitKey(3*1000)
+    cv2.waitKey(5*1000)
     
 
 
 
 if __name__== '__main__':
+    menu = [3,[(2,2,0,1,0,0),(1,0,2,0,0,1),(1,0,1,1,0,0)]]
+    numDrinks = menu[0]
+    drinks = menu[1]
+    print "Number of drinks: " + str(numDrinks) + "\n"
+    orderedDrinks = []
+    for e in drinks:
+        if e[5] == 0:
+            orderedDrinks.append(e)
+        else:
+            orderedDrinks.insert(0,e)
+    for i,e in enumerate(orderedDrinks):
+        print "Order " + str(i + 1)
+        print "Cupsize: " + ("Medium" if e[0] == 1 else "Large")
+        print "Number of coffee sachets: " + str(e[1])
+        print "Number of teabags: " + str(e[2])
+        print "Number of sugars: " + str(e[3])
+        print "Espresso: " + ("Yes" if e[4] == 1 else "No")
+        print "Urgent: " + ("Yes" if e[5] == 1 else "No")
+        print ""
+    print ""
+    print "---------------------------------"
+    print "---------------------------------"
+    print ""
     #rpm = 60/31.92
-    rpm = 60/29.07
+    rpm = 60/28.55
     thread.start_new_thread(loop,(tuple([rpm])))
     #FrameFind()
 
@@ -662,15 +713,31 @@ if __name__== '__main__':
         if iterationCount % 5:
             print pickNearestCup("Medium",rpm,delay=0)"""
     cv2.waitKey(15000)
+  
     waitDelay = 3
     #pickupAndFill(-183,213,5)
-    while True:
-        temp = pickNearestCup("Large",rpm,delay=waitDelay)
+    for e in orderedDrinks:
+        if(e[0] == 2):
+            orderSize = "Large"
+        else:
+            orderSize = "Medium"
+        print "Next order:"
+        print "Cupsize: " + orderSize
+        print "Number of coffee sachets: " + str(e[1])
+        print "Number of teabags: " + str(e[2])
+        print "Number of sugars: " + str(e[3])
+        print ""
+        temp = pickNearestCup(orderSize,rpm,delay=waitDelay)
         while temp == None:
             cv2.waitKey(500)
-            temp = pickNearestCup("Large",rpm,delay=waitDelay)
+            temp = pickNearestCup(orderSize,rpm,delay=waitDelay)
         [ang, x, y, x0,y0,cupAveTimeTemp,rpm] = temp
         pickupAndFill(x,y,waitDelay-0.8,x0,y0,cupAveTimeTemp,rpm)
+        print "Order complete"
+        print ""
+        print "---------------------------------"
+        print ""
+        
     
         
 
