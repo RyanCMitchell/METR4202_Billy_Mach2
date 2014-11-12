@@ -29,6 +29,7 @@ class AudioFile:
         self.p.terminate()
 
 # Usage example for pyaudio
-a = AudioFile("Train.wav")
-a.play()
-a.close()
+if __name__ == "__main__":
+    a = AudioFile("Train.wav")
+    a.play()
+    a.close()

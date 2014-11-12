@@ -10,15 +10,6 @@ import numpy as np
 import nxt, thread, time, serial
 motorDesiredArray = [0,0,0,80]
 
-def switch_vacuum(ser,state):
-    
-    if state == 1:
-        ser.write('o')
-    elif state == 0:
-        ser.write('x')
-    else:
-        return
-
 def beep(sound):
     winsound.PlaySound('%s.wav' % sound, winsound.SND_FILENAME)
 
