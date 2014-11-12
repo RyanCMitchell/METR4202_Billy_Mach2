@@ -6,8 +6,8 @@ import cv2.cv as cv
 from MatchingFunctions import drawKeyPoints
 
 
-dist = np.load('CalibrationImages/Caliboutput/dist.npy')
-Cam_Mat = np.load('CalibrationImages/Caliboutput/mtx1.npy')
+dist = np.load('Vision/CalibrationImages/Caliboutput/dist.npy')
+Cam_Mat = np.load('Vision/CalibrationImages/Caliboutput/mtx1.npy')
 
 
 def convertToWorldCoords(coordsList):
@@ -95,7 +95,7 @@ def FrameFind():
 
     board_w = 5 # ours is 5
     board_h = 8 # ours is 8
-    square = 26 # mm
+    square = 28 # mm
 
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objp = np.zeros((board_w * board_h, 3), np.float32)
@@ -126,8 +126,8 @@ def FrameFind():
     PixCorners = np.array([TopLeft, BottomLeft, BottomRight, TopRight])
 
     Corners = np.array(Corners)
-    np.save('CalibrationImages/Caliboutput/corners.npy',Corners)
-    np.save('CalibrationImages/Caliboutput/PixCorners.npy',PixCorners)
+    np.save('Vision/CalibrationImages/Caliboutput/corners.npy',Corners)
+    np.save('Vision/CalibrationImages/Caliboutput/PixCorners.npy',PixCorners)
     """
     cv2.line(img, tuple(BottomLeft[:2]), tuple(TopLeft[:2]), (255,0,0),3)
     cv2.line(img, tuple(BottomLeft[:2]), tuple(BottomRight[:2]), (0,0,255),3)

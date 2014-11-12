@@ -8,7 +8,6 @@
 from Kinematics import *
 import numpy as np
 import nxt, thread, time, serial
-import winsound
 motorDesiredArray = [0,0,0,80]
 
 def switch_vacuum(ser,state):
@@ -33,8 +32,6 @@ def initNXT():
 def runNxt(a,b,c,power,mx,my,mz):
     #create a list of instructions
     instructions = instructionsmake(a,b,c,power)
-    for i in instructions:
-        print i
 
     #get tach readings before running
     x0 = mx.get_tacho()
@@ -180,10 +177,6 @@ def mainMotorLoop(mx,my,mz):
         #print "Error  ", Ea,Eb,Ec
         if((samePosCount < 5)and flag):
             runNxt(multiplier*Ea,multiplier*Eb,multiplier*Ec,power,mx,my,mz)
-            if(multiplier== 0.8):
-                print "Multiplier, running ",Ea,Eb,Ec
-            else:
-                print "No multiplier, running ",Ea,Eb,Ec
 
         
 def setDesired(x0,y0,z0,power=False):
@@ -198,8 +191,8 @@ def setDesired(x0,y0,z0,power=False):
     motorDesiredArray = [-a,-b,-c,power]
 
 def transformWorldToBilly(xworld,yworld,zworld):
-    xworld = xworld + 181 + 55
-    yworld = yworld - 213 + 65
+    xworld = xworld + 176 + 55
+    yworld = yworld - 235 + 65
     xbilly = xworld*cosd(-30) - yworld*sind(-30)
     ybilly = xworld*sind(-30) + yworld*cosd(-30)
     return [xbilly,-ybilly,zworld]

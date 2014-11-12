@@ -9,8 +9,8 @@ img, timestamp = freenect.sync_get_video()
 depth, timestamp = freenect.sync_get_depth(format=freenect.DEPTH_REGISTERED)
 
 #Retieve the coordinate system
-Corners = np.load('CalibrationImages/Caliboutput/corners.npy')
-PixCorners = np.load('CalibrationImages/Caliboutput/PixCorners.npy')
+Corners = np.load('Vision/CalibrationImages/Caliboutput/corners.npy')
+PixCorners = np.load('Vision/CalibrationImages/Caliboutput/PixCorners.npy')
 
 #Draw the coordinate system
 cv2.line(img, tuple(PixCorners[1][:2]), tuple(PixCorners[0][:2]), (255,0,0),3)
