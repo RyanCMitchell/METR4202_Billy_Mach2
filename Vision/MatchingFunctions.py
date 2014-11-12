@@ -135,7 +135,7 @@ def saveImageMappedPoints(img, skptotal, ImageNo, num=-1):
     for i in range(num):
         pt_b = (int(skptotal[i].pt[0]), int(skptotal[i].pt[1]))
         cv2.circle(img, pt_b, 3, (255, 0, 0))
-    cv2.imwrite('ProcessedImages/Processed'+str(ImageNo)+'.jpg', img)
+    cv2.imwrite('Vision/ProcessedImages/Processed'+str(ImageNo)+'.jpg', img)
 
 
 def match(img, temp, dist = 200, num = -1):
@@ -182,8 +182,8 @@ def MatchAllCapture(save, tkpTdList, maxdist, img, depth):
 
 def SIFTLoadTemplates():
     #Prepare a list of different training images
-    pathlarge = "TrainingImages/AxonCups/LargeCup/"
-    pathmedium = "TrainingImages/AxonCups/MediumCup/"
+    pathlarge = "Vision/TrainingImages/AxonCups/LargeCup/"
+    pathmedium = "Vision/TrainingImages/AxonCups/MediumCup/"
     #pathsmall = "TrainingImages/AxonCups/SmallCup/"
 
     largecups = [ f for f in listdir(pathlarge) if isfile(join(pathlarge,f)) and f[0]<>"."]
