@@ -3,11 +3,15 @@ from os.path import isfile, join
 from os import listdir
 import numpy as np
 import freenect, cv2
+import thread
 import time, sys, itertools
 from matplotlib import pyplot as plt
 from math import sin,cos,sqrt, pi, atan2, radians
-from MatchingFunctions import *
-from CoordTransform import convertToWorldCoords, transformCoords, FrameFind
+#from MatchingFunctions import *
+#from CoordTransform import convertToWorldCoords, transformCoords, FrameFind
+from Vision.MatchingFunctions import *
+from Vision.CoordTransform import convertToWorldCoords, transformCoords, FrameFind
+from Lego_Control.runNxt import *
 #from MatchGlass import GlassFind
 
 cupInitPos = []
@@ -15,9 +19,10 @@ cupInitTime = []
 t0 = time.time()
 cupAveInitPos = []
 cupAveTime = 0.
+cupCompletedPos = []
 
-x_turnTableAxis = -181
-y_turnTableAxis = 213
+x_turnTableAxis = -176
+y_turnTableAxis = 235
 queueLength = 50
 
 def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0, SplitTend = 0.8, ROI = 0, drawnoncups = 0):
@@ -29,8 +34,8 @@ def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0,
     tCapture = time.time()
     
     #Retieve the coordinate system
-    Corners = np.load('CalibrationImages/Caliboutput/corners.npy')
-    PixCorners = np.load('CalibrationImages/Caliboutput/PixCorners.npy')
+    Corners = np.load('Vision/CalibrationImages/Caliboutput/corners.npy')
+    PixCorners = np.load('Vision/CalibrationImages/Caliboutput/PixCorners.npy')
 
     #Create ROI
     y0 = (PixCorners[1][0]+PixCorners[2][0])/2.
@@ -121,8 +126,8 @@ def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0,
 
     # Convert to world and then object coordinates
     FinalCentersCC = convertToWorldCoords(FinalCenters)
-    Corners = np.load('CalibrationImages/Caliboutput/corners.npy')
-    PixCorners = np.load('CalibrationImages/Caliboutput/PixCorners.npy')
+    Corners = np.load('Vision/CalibrationImages/Caliboutput/corners.npy')
+    PixCorners = np.load('Vision/CalibrationImages/Caliboutput/PixCorners.npy')
     FinalCentersWC = transformCoords(FinalCentersCC, Corners)
     
     #Draw the coordinate system
@@ -259,12 +264,11 @@ def MatchAllCluster(interationCount,save, tkpTdList, maxdist=200, filtparam=2.0,
             cv2.circle(img, tuple(topPixel), 2, (0,0,0), -1)
             cv2.circle(img, centers[j], 2, (0,0,0), -1)
         else:
-            deleteList.append(j)
-            
+            deleteList.append(j)           
     FinalFinalCentersWC = [i for j, i in enumerate(FinalCentersWC) if j not in deleteList]
     
     if save == 1:
-        cv2.imwrite('ProcessedImages/ProcessedCluster'+str(ImageNo)+'.jpg', img)
+        cv2.imwrite('Vision/ProcessedImages/ProcessedCluster'+str(ImageNo)+'.jpg', img)
 
     # Print or save final image
     if len(FinalFinalCentersWC)<>0:# or len(FinalGlassCentersWC)<>0:
@@ -323,10 +327,11 @@ def getCupPositionAve(ind,rpm,tAhead):
     theta0 = atan2(x0,y0)
     r = sqrt(x0**2+y0**2)
     t = time.time()-t0-cupAveTime
+    cupAveTimeTemp = cupAveTime
     theta = rpm*(pi/30.)*(t+tAhead)+theta0
     x_circle = r*sin(theta) + x_turnTableAxis
     y_circle = r*cos(theta) + y_turnTableAxis
-    return x_circle,y_circle,cupType
+    return x_circle,y_circle,cupType,x0,y0,cupAveTimeTemp
 
 def visualiseCupAve(rpm,tAhead=5):
     d_table = 255
@@ -341,7 +346,7 @@ def visualiseCupAve(rpm,tAhead=5):
 
     #raw cups
     for i in xrange(len(cupAveInitPos)):
-        x,y,cupType = getCupPositionAve(i,rpm,0)
+        x,y,cupType,x0,y0,cupAveTimeTemp = getCupPositionAve(i,rpm,0)
         
 
         x = x - x_turnTableAxis
@@ -436,6 +441,13 @@ def clusterCup(rpm,SplitTend=0.5,tlag=0.1):
         groups = distFromCenterAveList.index(min(distFromCenterAveList))+1
         segregated, centers, distFromCenter, distFromCenterAve = Cluster(Z, groups)
 
+
+        #closeCenters = []
+        #closeSegregated = []
+        #for i in xrange(groups):
+#            for j in xrange(i,groups):
+#                if i!=j and sqrt((centers[i][0]-centers[j][0])**2+(centers[i][1]-centers[j][1])**2)<(2*r_cupMedium):
+                    
         """
         # Combine overlapping cups, too hard
         closeCenters = []
@@ -443,21 +455,63 @@ def clusterCup(rpm,SplitTend=0.5,tlag=0.1):
             for j in xrange(i,groups):
                 if i<>j and sqrt((centers[i][0]-centers[j][0])**2+(centers[i][1]-centers[j][1])**2)<(2*r_cupMedium):
                     closeCenters.append([i,j])
-
         print "closeCenters",closeCenters
-
         segregatedNewList = []
         centersNewList = []
         popList = []
-        for i in closeCenters:
-            segregatedNewList.append(segregated[i[0]]+segregated[i[1]])
-            centersNewList.append([(centers[i[0]][0]+centers[i[1]][0])/2.,
-                                   (centers[i[0]][1]+centers[i[1]][1])/2.])
-            popList.append(i[0])
-            popList.append(i[1])
-        popList=(list(set(popList))).sort(reverse=True)
-        print "popList",popList
-        """ 
+        newGroups = []
+        comboGroup = []
+        for pair in closeCenters:
+            p0 = pair[0]
+            p1 = pair[1]
+            #segregatedNewList.append(segregated[pair[0]]+segregated[pair[1]])
+            segregatedNewList.append(np.vstack((segregated[p0],segregated[p1])))
+            centersNewList.append([(centers[p0][0]+centers[p1][0])/2.,
+                                   (centers[p0][1]+centers[p1][1])/2.])
+            if (p0 not in popList):
+                popList.append(p0)
+            if (p1 not in popList):
+                popList.append(p1)
+
+            #Check if already put in a group
+            if (len(newGroups) == 0):
+                newGroups.append(pair)
+            for i in xrange(len(closeCenters)):                
+                comboGroup = [group for group in newGroups if any([p0 in group, p1 in group])]
+                print "comboGroup",comboGroup
+                if len(comboGroup) > 0:
+                    checkSet = set(itertools.chain.from_iterable(comboGroup))
+                    print newGroups[i]," ",checkSet
+                    newGroups[i] = (list(set(newGroups[i])|checkSet))
+                else:
+                    newGroups.append(pair)
+                '''if p0 in newGroups[i] and p1 not in newGroups[i]:
+                    print "newGroups[i] before:",newGroups[i]
+                    newGroups[i].append(p1)
+                    #newGroups[i] = newGroups[i].append(p1)
+                    print "newGroups[i] after:",newGroups[i]
+                elif p1 in newGroups[i] and p0 not in newGroups[i]:
+                    newGroups[i].append(p0)
+                elif p1 in newGroups[i] and p0 in newGroups[i]:
+                    continue
+                else:
+                    newGroups.append(pair)
+                    '''
+        print "newGroups",newGroups                       
+
+        #popList=(list(set(popList))).sort(reverse=True)
+        popList.sort(reverse=True)
+        while (len(popList) > 0):
+            popVal = popList.pop(0)
+            groups -= 1
+            segregated.pop(popVal)
+            centers.pop(popVal)
+        segregated = segregated + segregatedNewList
+        centers = centers + centersNewList
+        groups += len(centersNewList)
+        #print "popList",popList
+        
+        """
                 
         global cupAveTime
         cupAveTime = time.time()-t0-tlag
@@ -501,16 +555,17 @@ def clusterCup(rpm,SplitTend=0.5,tlag=0.1):
 def pickNearestCup(reqCupType,rpm,delay=5):
     futureCups = []
     for i in xrange(len(cupAveInitPos)):
-        x,y,cupType = getCupPositionAve(i,rpm,delay)
+        x,y,cupType,x0,y0,cupAveTimeTemp = getCupPositionAve(i,rpm,delay)
         if cupType == reqCupType:
             x0 = x - x_turnTableAxis
             y0 = y - y_turnTableAxis
             theta0 = atan2(x0,y0)
-            futureCups.append([theta0,x,y])
+            futureCups.append([theta0,x,y,x0,y0,cupAveTimeTemp,rpm])
 
     contenderCups = []
     for i in futureCups:
-        if radians(165)<i[0]<radians(180) or radians(-180)<i[0]<radians(-75):
+        #if radians(165)<i[0]<radians(180) or radians(-180)<i[0]<radians(-75):
+        if radians(-180)<i[0]<radians(-90):
             contenderCups.append(i)
 
     contenderCups.sort(key=lambda x: (x[0]+radians(360) % radians(360)))
@@ -520,23 +575,103 @@ def pickNearestCup(reqCupType,rpm,delay=5):
     else:
         return None
 
+def getCupPositionAtTime(x0,y0,rpm,tAhead,cupAveTimeTemp):
+    #Extract inital global variables
+    theta0 = atan2(x0,y0)
+    r = sqrt(x0**2+y0**2)
+    t = time.time()-t0-cupAveTimeTemp
+    theta = rpm*(pi/30.)*(t+tAhead)+theta0
+    x_circle = r*sin(theta) + x_turnTableAxis
+    y_circle = r*cos(theta) + y_turnTableAxis
+    return x_circle,y_circle
 
-if __name__== '__main__':
-    rpm = 60/31.92
-    
-    
+def loop(rpm):
     cv2.destroyAllWindows()
-    
-    #FrameFind()
     tkpTdList = SIFTLoadTemplates()
-    interationCount = 0
+    iterationCount = 0
     while True:
-        MatchAllCluster(interationCount,0,tkpTdList, maxdist=80, filtparam=1.0, SplitTend = 0.5, ROI = 1, drawnoncups = 1)
+        MatchAllCluster(iterationCount,0,tkpTdList, maxdist=80, filtparam=1.0, SplitTend = 0.5, ROI = 1, drawnoncups = 1)
         clusterCup(rpm,SplitTend=1.2,tlag=0)
         visualiseCupAve(rpm,tAhead=5)
         cv2.waitKey(1)
-        interationCount += 1
-        pickNearestCup("Medium",rpm,delay=5)
+        iterationCount += 1
+
+
+def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
+    sleeptime2 = 3
+    coaster = transformWorldToBilly(-330,90,20)
+    midpoint = transformWorldToBilly(-180,50,110)
+    [xb,yb,zb] = transformWorldToBilly(x,y,150)
+    setDesired(xb,yb,zb)
+    switch_vacuum(ser,1)
+    cv2.waitKey(int(sleeptime*1000))
+    setDesired(xb,yb,0)
+    cv2.waitKey(500)
+    setDesired(xb,yb,-30)
+    cv2.waitKey(500)
+    setDesired(xb,yb,150)
+    cv2.waitKey(2000)
+    setDesired(midpoint[0],midpoint[1],midpoint[2])
+    cv2.waitKey(2*1000)
+    setDesired(coaster[0],coaster[1],coaster[2])
+    cv2.waitKey(5*1000)
+    setDesired(midpoint[0],midpoint[1],midpoint[2])
+    cv2.waitKey(500)
+    xnew,ynew = getCupPositionAtTime(x0,y0,rpm,sleeptime2,cupAveTimeTemp)
+    xnewtable = xnew - x_turnTableAxis
+    ynewtable = ynew - y_turnTableAxis
+    theta0 = atan2(xnewtable,ynewtable)
+    while not (radians(-180)<theta0<radians(-90)):
+        xnew,ynew = getCupPositionAtTime(x0,y0,rpm,sleeptime2,cupAveTimeTemp)
+        xnewtable = xnew - x_turnTableAxis
+        ynewtable = ynew - y_turnTableAxis
+        theta0 = atan2(xnewtable,ynewtable)
+        cv2.waitKey(20)
+    print xnew,ynew
+    [xnew,ynew,znew] = transformWorldToBilly(xnew,ynew,150)
+    print xnew,ynew
+    setDesired(xnew,ynew,150)
+    cv2.waitKey(int((sleeptime2-0.8)*1000))
+    switch_vacuum(ser,0)
+    setDesired(xnew,ynew,30)
+    cv2.waitKey(2*1000)
+    setDesired(xnew,ynew,150)
+    cv2.waitKey(3*1000)
+    
+
+
+
+if __name__== '__main__':
+    #rpm = 60/31.92
+    rpm = 60/29.07
+    thread.start_new_thread(loop,(tuple([rpm])))
+    #FrameFind()
+
+    ser = serial.Serial('/dev/tty.usbmodem14141', 115200)
+    mx,my,mz = initNXT()
+    setDesired(0,0,150)
+    thread.start_new_thread(mainMotorLoop, (mx,my,mz))
+    #FrameFind()
+    """while True:
+        MatchAllCluster(iterationCount,0,tkpTdList, maxdist=80, filtparam=1.0, SplitTend = 0.5, ROI = 1, drawnoncups = 1)
+        clusterCup(rpm,SplitTend=1.0,tlag=0)
+        visualiseCupAve(rpm,tAhead=5)
+        cv2.waitKey(1)
+        iterationCount += 1
+
+        if iterationCount % 5:
+            print pickNearestCup("Medium",rpm,delay=0)"""
+    cv2.waitKey(15000)
+    waitDelay = 3
+    #pickupAndFill(-183,213,5)
+    while True:
+        temp = pickNearestCup("Large",rpm,delay=waitDelay)
+        while temp == None:
+            cv2.waitKey(500)
+            temp = pickNearestCup("Large",rpm,delay=waitDelay)
+        [ang, x, y, x0,y0,cupAveTimeTemp,rpm] = temp
+        pickupAndFill(x,y,waitDelay-0.8,x0,y0,cupAveTimeTemp,rpm)
+    
         
 
     
