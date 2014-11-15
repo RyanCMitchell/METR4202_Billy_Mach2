@@ -12,6 +12,10 @@ from math import sin,cos,sqrt, pi, atan2, radians
 from Vision.MatchingFunctions import *
 from Vision.CoordTransform import convertToWorldCoords, transformCoords, FrameFind
 from Lego_Control.runNxt import *
+<<<<<<< HEAD
+=======
+import Sound
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
 #from MatchGlass import GlassFind
 
 cupInitPos = []
@@ -601,6 +605,17 @@ def pickNearestCup(reqCupType,rpm,delay=5):
     else:
         return None
 
+<<<<<<< HEAD
+=======
+def switch_vacuum(ser,state):
+    if state == 1:
+        ser.write('o')
+    elif state == 0:
+        ser.write('x')
+    else:
+        return
+
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
 def getCupPositionAtTime(x0,y0,rpm,tAhead,cupAveTimeTemp):
     #Extract inital global variables
     theta0 = atan2(x0,y0)
@@ -624,6 +639,7 @@ def loop(rpm):
 
 
 def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
+<<<<<<< HEAD
     cupCompletedPos.append([x0,y0,rpm,-1*sleeptime-0.8,cupAveTimeTemp])
     sleeptime2 = 3
     coaster = transformWorldToBilly(-330,90,20)
@@ -637,6 +653,23 @@ def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
     setDesired(xb,yb,-30)
     cv2.waitKey(500)
     setDesired(xb,yb,150)
+=======
+    global ser
+    cupCompletedPos.append([x0,y0,rpm,-1*sleeptime-0.5,cupAveTimeTemp])
+    sleeptime2 = 3
+    coaster = transformWorldToBilly(-330,90,20)
+    midpoint = transformWorldToBilly(-180,50,110)
+    [xb,yb,zb] = transformWorldToBilly(x,y,140)
+    setDesired(xb,yb,zb)
+    switch_vacuum(ser,1)
+    cv2.waitKey(int(sleeptime*1000))
+    switch_vacuum(ser,1)
+    setDesired(xb,yb,10)
+    cv2.waitKey(500)
+    setDesired(xb,yb,-30)
+    cv2.waitKey(500)
+    setDesired(xb,yb,140)
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
     cv2.waitKey(2000)
     setDesired(midpoint[0],midpoint[1],midpoint[2])
     cv2.waitKey(2*1000)
@@ -654,15 +687,24 @@ def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
         ynewtable = ynew - y_turnTableAxis
         theta0 = atan2(xnewtable,ynewtable)
         cv2.waitKey(20)
+<<<<<<< HEAD
     [xnew,ynew,znew] = transformWorldToBilly(xnew,ynew,150)
     setDesired(xnew,ynew,150)
     cv2.waitKey(int((sleeptime2- 1.2 - 0.8)*1000))
+=======
+    [xnew,ynew,znew] = transformWorldToBilly(xnew,ynew,140)
+    setDesired(xnew,ynew,150)
+    cv2.waitKey(int((sleeptime2- 1.2 - 0.5)*1000))
+    switch_vacuum(ser,0)
+    cv2.waitKey(100)
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
     switch_vacuum(ser,0)
     cv2.waitKey(1200)
     setDesired(xnew,ynew,50)
     cv2.waitKey(500)
     setDesired(xnew,ynew,20)
     cv2.waitKey(2*1000)
+<<<<<<< HEAD
     setDesired(xnew,ynew,150)
     cv2.waitKey(5*1000)
     
@@ -671,6 +713,18 @@ def pickupAndFill(x,y,sleeptime,x0,y0,cupAveTimeTemp,rpm):
 
 if __name__== '__main__':
     menu = [3,[(2,2,0,1,0,0),(1,0,2,0,0,1),(1,0,1,1,0,0)]]
+=======
+    setDesired(xnew,ynew,140)
+
+def playAudio():
+    audioFile = Sound.AudioFile("Train.wav")
+    audioFile.play()
+    audioFile.close()
+
+
+if __name__== '__main__':
+    menu = [3,[(1,2,0,1,0,0),(1,0,2,0,0,1),(2,1,0,1,0,0)]]
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
     numDrinks = menu[0]
     drinks = menu[1]
     print "Number of drinks: " + str(numDrinks) + "\n"
@@ -702,7 +756,10 @@ if __name__== '__main__':
     mx,my,mz = initNXT()
     setDesired(0,0,150)
     thread.start_new_thread(mainMotorLoop, (mx,my,mz))
+<<<<<<< HEAD
     #FrameFind()
+=======
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
     """while True:
         MatchAllCluster(iterationCount,0,tkpTdList, maxdist=80, filtparam=1.0, SplitTend = 0.5, ROI = 1, drawnoncups = 1)
         clusterCup(rpm,SplitTend=1.0,tlag=0)
@@ -712,7 +769,11 @@ if __name__== '__main__':
 
         if iterationCount % 5:
             print pickNearestCup("Medium",rpm,delay=0)"""
+<<<<<<< HEAD
     cv2.waitKey(15000)
+=======
+    cv2.waitKey(20000)
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
   
     waitDelay = 3
     #pickupAndFill(-183,213,5)
@@ -732,11 +793,20 @@ if __name__== '__main__':
             cv2.waitKey(500)
             temp = pickNearestCup(orderSize,rpm,delay=waitDelay)
         [ang, x, y, x0,y0,cupAveTimeTemp,rpm] = temp
+<<<<<<< HEAD
         pickupAndFill(x,y,waitDelay-0.8,x0,y0,cupAveTimeTemp,rpm)
+=======
+        pickupAndFill(x,y,waitDelay-0.5,x0,y0,cupAveTimeTemp,rpm)
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
         print "Order complete"
         print ""
         print "---------------------------------"
         print ""
+<<<<<<< HEAD
+=======
+        thread.start_new_thread(playAudio,())
+        cv2.waitKey(5*1000)
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
         
     
         

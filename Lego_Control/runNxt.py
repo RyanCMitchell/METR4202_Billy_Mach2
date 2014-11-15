@@ -10,6 +10,7 @@ import numpy as np
 import nxt, thread, time, serial
 motorDesiredArray = [0,0,0,80]
 
+<<<<<<< HEAD
 def switch_vacuum(ser,state):
     
     if state == 1:
@@ -19,6 +20,8 @@ def switch_vacuum(ser,state):
     else:
         return
 
+=======
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
 def beep(sound):
     winsound.PlaySound('%s.wav' % sound, winsound.SND_FILENAME)
 
@@ -255,10 +258,17 @@ def instructionsmake(degx,degy,degz,power):
         return instructions
     else:
         return instructionsmake2(degx,degy,degz,power)
+<<<<<<< HEAD
 
 def kinect2Billy(x,y,z):
     # adjust for left hand rule kinematics (already with corrected z)
 
+=======
+
+def kinect2Billy(x,y,z):
+    # adjust for left hand rule kinematics (already with corrected z)
+
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
     return newx,newy,newz
 
 if __name__=='_main__':

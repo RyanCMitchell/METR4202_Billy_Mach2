@@ -29,6 +29,13 @@ class AudioFile:
         self.p.terminate()
 
 # Usage example for pyaudio
+<<<<<<< HEAD
 a = AudioFile("Train.wav")
 a.play()
 a.close()
+=======
+if __name__ == "__main__":
+    a = AudioFile("Train.wav")
+    a.play()
+    a.close()
+>>>>>>> 58bf3309326707017afc00a4b58cc724bbf4c7e0
